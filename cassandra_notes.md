@@ -25,7 +25,7 @@ Differences:
  
 Number of partitions does not decrease performance what does is the number of rows in these partitions and the amount of data
  
-### Important Concepts:
+##### Important Concepts:
    - Data Storage
         Primary Keys define data uniqueness
         Partition Keys define data distribution
@@ -63,14 +63,30 @@ Insert into users (name,emails) values('xyz',{ 'cxaa123@gmail.com','123@xyz.com'
 - Map: Key Value pairs
        Todo={'1':'abc', '2':'def'}
  
-Using FROZEN in collection
-  1: Nest datatypes in collection
-  2: Will serialize multiple components in a single value
-  3: FROZEN collection are treated as BLOBs
-  4: Non-frozen allow updates to individual fields
+Use of FROZEN in collection
+  1. Nest datatypes in collection
+  2. Will serialize multiple components in a single value
+  3. FROZEN collection are treated as BLOBs
+  4. Non-frozen allow updates to individual fields
  
 User Defined Types(UDTs)
   Used to group related information
-      - Can have multiple data fields, each named and Type to a singlr column
-      - Can be any datatype including other UDTs
-      - Allows more complex embedding of data with a single column
+      1. Can have multiple data fields, each named and Type to a singlr column
+      2. Can be any datatype including other UDTs
+      3. Allows more complex embedding of data with a single column
+ Example UDTs
+ - create TYPE full_name (first_name text, last_name text);
+ - create TYPE address (street text, city text, zip number);
+
+ create TABLE users(id uuid, name frozen <full_name>, direct_reports set<frozen <full_name>>, addresses map<text,frozen <address> >,
+                    PRIMARY KEY(id)); 
+ 
+ ## Counters
+ - 64 bit signed integer, can be incremented or decremented
+ - use UPDATE to change values
+ - Need special tables with Primary Key and counter columns
+ 
+### SQLs: 
+1. create TABLE PIZZA_DISPATCHED(store_name text, pizza_count, counter, PRIMARY KEY(store_name));
+2. update PIZZA_DISPATCHED set pizza_count = pizza_count +1 where store_name = 'Dominos'
+ 
