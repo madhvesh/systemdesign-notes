@@ -18,12 +18,25 @@ Differences:
 ### Clustering Column 
       Defines the ordering of data in the partition. Eg: Order by Movies Names
 ### Keys and Partitions
-- Primary Key - Usually Partition Key is a combination pf Partition Key and Clustering Colum for Unquiness
-- Partitions 
-     Single Row Partition - Unique value like UUID
-     Multiple Row Partition - Multiple columns share the partition Eg: PRIMARY KEY((venue, year), artifact)
+- Primary Key: 
+  - Usually Partition Key is a combination pf Partition Key and Clustering Colum for Unquiness
+  - Has to be either Natural Keys and Surrogate Keys 
+    - Natural keys: One of the attributes in the dataset
+    - Surrogate Keys: keys for sole purpose of uniqueness, say UUID. Has no relationship with data
+      - Conflict Free
+      - Immutable, Uniform, Compactness, Performance
+
+- Partitions
+  - Single Row Partition - Unique value like UUID
+  - Multiple Row Partition - Multiple columns share the partition Eg: PRIMARY KEY((venue, year), artifact)
  
-Number of partitions does not decrease performance what does is the number of rows in these partitions and the amount of data
+Number of partitions does not decrease performance what does is the number of rows in these partitions and the amount of data. Some of the strategies for splitting partitions if it gets too large
+   - Add another column this can be Natural or Surrogate the goal is have fewer rows per partition
+   - Split using bucket, this enables the application to decide how many rows can be stored in the partition
+   - Split the colums into smaller tables
+ 
+ To the contrary, we can merge partitions if its too fragmented.
+  - Introduce new partition key and nest objects into new partition
  
 ##### Important Concepts:
    - Data Storage
@@ -63,7 +76,7 @@ Insert into users (name,emails) values('xyz',{ 'cxaa123@gmail.com','123@xyz.com'
 - Map: Key Value pairs
        Todo={'1':'abc', '2':'def'}
  
-Use of FROZEN in collection
+Use of FROZEN keyword in collection
   1. Nest datatypes in collection
   2. Will serialize multiple components in a single value
   3. FROZEN collection are treated as BLOBs
@@ -171,11 +184,27 @@ FROM - Name of BaseTable
 - Read repair to Base table will also result in repair to Mat View. If a read repair is performed to Mat View its not done for base table
  
 ### DATA AGGREGATION FUNCTIONS
- SUM - Total value from the column within the selected row
- AVG - Mean value of column within selected row
- COUNT - Count of all rows
- MIN - Min value of column within slected rows
- MAX - Max value of column within selected rows
+ 1. SUM - Total value from the column within the selected row
+ 2. AVG - Mean value of column within selected row
+ 3. COUNT - Count of all rows
+ 4. MIN - Min value of column within slected rows
+ 5. MAX - Max value of column within selected rows
  
-
+### Cassandra Anti-Patterns:
+ #### Query Specific:
+     1. Queries that do a entire tablescan
+     2. Layering IN clauses to get a particular result
+     3. Doing a read before write excessively, as these are expensive. Use lightweight transactions as last resort (atleast 4 times slow than normal   
+        write)
+     4: Allow FILTERING to retreive data
+ 
+ #### Table Specific
+     1. Excessive creation of secondary index
+     2. Use of non-frozen collection is a huge performance hit. If non-frozen is defined in UDTs make it frozen
+     3. Use of string to represent dates and timestamps instead of time, timestamp or data
+ 
+ #### Keyspace Level
+     1. Not using TTLs or deletes can cause tombstones to build up
+     2. If your read queries are timing out then consider modifying table structure
+    
  
