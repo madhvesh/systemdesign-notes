@@ -45,7 +45,7 @@ ALTER Table cannot alter PRIMARY KEYS
 SOURCE - Execute a set of CQL commands
  
  
-## Collections :
+### Collections :
     Store Multivalued Data, Used for Small data
  
 - Set 
@@ -80,12 +80,16 @@ User Defined Types(UDTs)
 
  create TABLE users(id uuid, name frozen <full_name>, direct_reports set<frozen <full_name>>, addresses map<text,frozen <address> >,
                     PRIMARY KEY(id)); 
+
+### Static columns
+It is a special column that is shared by all the rows of a partition. the static column is very useful when we want to share a column with a single value. 
  
  ## Counters
  - 64 bit signed integer, can be incremented or decremented
  - use UPDATE to change values, no-  using timestamp or update ttl
  - Need special tables with Primary Key and counter columns
  - cannot assign default values
+ - counter operations internally need read before write
  
 ### SQLs: 
 1. create TABLE PIZZA_DISPATCHED(store_name text, pizza_count, counter, PRIMARY KEY(store_name));
@@ -125,4 +129,53 @@ User Defined Types(UDTs)
      where user_id='maddy'
      IF reset_token = '12345'
     
+### Secondary Index
+ 1. For column lookups which is not part of the Primary Key
+ 2. Cannot be used for counters and static columns
+ 3. Creates additional data structure in nodes
+    - Each local node will have its own Index of the data it stores. So a query on secondary Index will need to go to all the nodes and pickup data from
+      local Index
+    - Better design is to provide partition key and then the Index so that search is efficient.
+ 
+ #### When to use secondary Index
+  1. Low cardinality columns (unique values for the columns)*
+  2. Small Datasets or when in Prototype
+  3. Search on both partition key and indexed column in a large partition 
+ 
+  #### When not to use secondary Index
+  1. High cardinality columns*
+  2. Columns that use counter
+  3. Frequently updated or deleted columns
+ 
+ *If the cardinality is low then number of unique columns returned is small so its worth doing an Index as large data is retreived. If its fewer rows
+  then we need to search all the nodes for less data
+ 
+ ## Materialized View
+ Materialized view is a separate table built from another table  data but a different primary Key. Materialized view are suitable for  
+ high cardinality data.
+  - The columns from the Primary key from the base table should be part of the primary key of Materialized view
+  - Additional column which is usually the key to search on (also can be partition key) will be added.
+  - Static columns are not allowed
+ 
+Syntax:
+ CREATE MATERIALIZED VIEW user_by_email AS SELECT first_name, last_name, email FROM users WHERE email is not null and user_id is not null
+ PRIMARY KEY(email, user_id);
+ 
+ *User_id is the primary key in Users table
+ 
+AS SELECT  - Specifies Base table column
+FROM - Name of BaseTable
+ 
+- Cannot write to MatViews
+- Mat Views are updated async when base table is updated. Since the partition col are different updates might get delayed
+- Read repair to Base table will also result in repair to Mat View. If a read repair is performed to Mat View its not done for base table
+ 
+### DATA AGGREGATION FUNCTIONS
+ SUM - Total value from the column within the selected row
+ AVG - Mean value of column within selected row
+ COUNT - Count of all rows
+ MIN - Min value of column within slected rows
+ MAX - Max value of column within selected rows
+ 
+
  
